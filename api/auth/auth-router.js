@@ -1,6 +1,8 @@
+const server = require('express')
+const router = server.Router()
+
 // Require `checkUsernameFree`, `checkUsernameExists` and `checkPasswordLength`
 // middleware functions from `auth-middleware.js`. You will need them here!
-
 
 /**
   1 [POST] /api/auth/register { "username": "sue", "password": "1234" }
@@ -25,6 +27,9 @@
   }
  */
 
+router.post('/register', (req, res) => {
+	res.status(200).json({message: 'register'})
+})
 
 /**
   2 [POST] /api/auth/login { "username": "sue", "password": "1234" }
@@ -42,6 +47,9 @@
   }
  */
 
+router.post('/login', (req, res) => {
+	res.status(200).json({message: 'login'})
+})
 
 /**
   3 [GET] /api/auth/logout
@@ -58,6 +66,8 @@
     "message": "no session"
   }
  */
+router.get('/logout', (req, res) => {
+	res.status(200).json({message: 'logout'})
+})
 
- 
-// Don't forget to add the router to the `exports` object so it can be required in other modules
+module.exports = router
