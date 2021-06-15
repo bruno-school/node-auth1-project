@@ -1,6 +1,8 @@
 const server = require('express')
 const router = server.Router()
-
+const bcrypt = require('bcryptjs')
+const User = require('../users/users-model')
+const {checkUsernameFree, checkUsernameExists} = require('./auth-middleware')
 // Require `checkUsernameFree`, `checkUsernameExists` and `checkPasswordLength`
 // middleware functions from `auth-middleware.js`. You will need them here!
 
@@ -27,10 +29,24 @@ const router = server.Router()
   }
  */
 
-router.post('/register', (req, res) => {
-	res.status(200).json({message: 'register'})
-})
-
+router.post(
+	'/register',
+	checkUsernameFree,
+	checkUsernameExists,
+	async (req, res, next) => {
+		try {
+			const {username, password} = req.body
+			const hash = bcrypt.hashSync(password, 8)
+			const newUserObj = {username, password: hash}
+			const newUserId = await User.add(newUserObj)
+			const foundNewUser = await User.findById(newUserId)
+			res.status(201).json(foundNewUser)
+		} catch (error) {
+			next(error)
+		}
+	}
+)
+0
 /**
   2 [POST] /api/auth/login { "username": "sue", "password": "1234" }
 
@@ -47,8 +63,20 @@ router.post('/register', (req, res) => {
   }
  */
 
-router.post('/login', (req, res) => {
-	res.status(200).json({message: 'login'})
+router.post('/login', async (req, res, next) => {
+	try {
+		const {username, password} = req.body
+		const [user] = await User.findBy({username})
+
+		if (user && bcrypt.compareSync(password, user.password)) {
+			req.session.user = user
+			res.status(200).json({messgage: `welcome ${username}`})
+		} else {
+			next({status: 401, message: 'invalid credentials'})
+		}
+	} catch (error) {
+		next(error)
+	}
 })
 
 /**
@@ -66,8 +94,15 @@ router.post('/login', (req, res) => {
     "message": "no session"
   }
  */
-router.get('/logout', (req, res) => {
-	res.status(200).json({message: 'logout'})
+router.get('/logout', (req, res, next) => {
+	if (req.session.user) {
+		req.session.destroy((err) => {
+			if (err) res.json({message: 'session cannot be cancel'})
+			else res.json({message: 'Good Bye'})
+		})
+	} else {
+		res.status(200).json({message: 'Invalid Login'})
+	}
 })
 
 module.exports = router

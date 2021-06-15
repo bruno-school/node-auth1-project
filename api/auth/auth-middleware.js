@@ -1,3 +1,5 @@
+const User = require('../users/users-model')
+const db = require('../../data/db-config')
 /*
   If the user does not have a session saved in the server
 
@@ -7,8 +9,11 @@
   }
 */
 function restricted(req, res, next) {
-	console.log('restricted')
-	next()
+	if (req.session.user) {
+		next()
+	} else {
+		next({satus: 401, message: 'Invalid Pass'})
+	}
 }
 
 /*
@@ -19,7 +24,21 @@ function restricted(req, res, next) {
     "message": "Username taken"
   }
 */
-function checkUsernameFree() {}
+async function checkUsernameFree(req, res, next) {
+	const {username} = req.body
+	if (!username) next({status: 401, message: 'Invalid credentials'})
+
+	try {
+		const user = await db('users').where('username', username).first()
+		if (!user) {
+			next({status: 422, message: 'Username taken'})
+		} else {
+			next()
+		}
+	} catch (error) {
+		next(error)
+	}
+}
 
 /*
   If the username in req.body does NOT exist in the database
@@ -29,7 +48,21 @@ function checkUsernameFree() {}
     "message": "Invalid credentials"
   }
 */
-function checkUsernameExists() {}
+async function checkUsernameExists(req, resm next) {
+	const {username} = req.body
+	if (!username) next({status: 401, message: 'Invalid credentials'})
+
+	try {
+		const user = await db('users').where('username', username).first()
+		if (!user) {
+			next({status: 401, message: 'Invalid credentials'})
+		} else {
+			next()
+		}
+	} catch (error) {
+		next(error)
+	}
+}
 
 /*
   If password is missing from req.body, or if it's 3 chars or shorter
@@ -45,4 +78,6 @@ function checkPasswordLength() {}
 
 module.exports = {
 	restricted,
+	checkUsernameFree,
+	checkUsernameExists,
 }
